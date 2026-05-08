@@ -98,6 +98,54 @@ export interface SchemeRegistration {
   server: unknown;
 }
 
+/**
+ * One way the resource server will accept payment for a route.
+ *
+ * @example
+ * ```ts
+ * {
+ *   scheme: 'exact',
+ *   price: '$0.01',
+ *   network: ALGORAND_TESTNET_CAIP2,
+ *   payTo: 'SDFY...3HJPDU',
+ *   extra: { asset: USDC_TESTNET_ASA_ID },
+ * }
+ * ```
+ */
+export interface PaymentOption {
+  /** Payment scheme name, e.g. `'exact'`. */
+  scheme: string;
+  /** Address that will receive the payment. */
+  payTo: string;
+  /** Either a USD-denominated string (`'$0.01'`) or atomic-units descriptor. */
+  price: string | { amount: string; asset?: string };
+  /** CAIP-2 network identifier. */
+  network: string;
+  /** Optional payment timeout in seconds. */
+  maxTimeoutSeconds?: number;
+  /** Scheme-specific extras. For AVM exact, set `{ asset: <ASA-id> }`. */
+  extra?: Record<string, unknown>;
+}
+
+/** Route-level payment configuration. */
+export interface RouteConfig {
+  /** One or more payment options the server will accept. */
+  accepts: PaymentOption | PaymentOption[];
+  /** Human-readable description shown in the 402 response. */
+  description?: string;
+  /** Optional override for the resource URL embedded in the 402 payload. */
+  resource?: string;
+  /** MIME type for the protected resource. */
+  mimeType?: string;
+  /** Custom HTML to serve to browsers (via Accept: text/html). */
+  customPaywallHtml?: string;
+  /** x402 protocol extensions, e.g. `{ bazaar: {...} }`. */
+  extensions?: Record<string, unknown>;
+}
+
+/** Map of `"VERB /path"` patterns to route configs. */
+export type RoutesConfig = Record<string, RouteConfig>;
+
 export interface BuildX402MiddlewareOptions {
   /**
    * URL of the x402 facilitator. The facilitator verifies and settles
@@ -106,12 +154,8 @@ export interface BuildX402MiddlewareOptions {
    * @example "https://facilitator.goplausible.xyz"
    */
   facilitatorUrl: string;
-  /**
-   * Map of "VERB /path" → route config. See @x402/core docs for the full
-   * shape of each entry. Each route specifies `accepts` (one or more
-   * payment options) and an optional `description`/`mimeType`.
-   */
-  routes: Record<string, unknown> | unknown;
+  /** Map of `"VERB /path"` → route config. */
+  routes: RoutesConfig;
   /**
    * Optional scheme registrations. By default, the AVM `exact` scheme is
    * registered for both Algorand TestNet and MainNet — which is what most

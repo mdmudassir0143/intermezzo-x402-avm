@@ -1,8 +1,17 @@
 {
   "name": "intermezzo-x402-avm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "x402 payment protocol adapter for Algorand custodial wallets — works with Intermezzo, KMS, HSM, or any Ed25519 signing primitive",
   "license": "MIT",
+  "homepage": "https://github.com/algorandfoundation/intermezzo",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/algorandfoundation/intermezzo.git",
+    "directory": "x402-sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/algorandfoundation/intermezzo/issues"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "typesVersions": {
@@ -28,6 +37,7 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
@@ -50,11 +60,11 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@algorandfoundation/algokit-utils": ">=10.0.0-alpha.42",
+    "@algorandfoundation/algokit-utils": ">=10.0.0-alpha.42 <11",
     "@nestjs/common": ">=10.0.0",
-    "@x402/avm": ">=2.0.0",
-    "@x402/core": ">=2.0.0",
-    "@x402/fetch": ">=2.0.0",
+    "@x402/avm": ">=2.0.0 <3",
+    "@x402/core": ">=2.0.0 <3",
+    "@x402/fetch": ">=2.0.0 <3",
     "express": ">=4.0.0",
     "reflect-metadata": ">=0.2.0",
     "rxjs": ">=7.0.0"

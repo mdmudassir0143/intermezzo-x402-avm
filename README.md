@@ -211,7 +211,35 @@ Unpaid `GET /weather` returns `402 Payment Required` with x402-shaped headers; p
 
 The bundled controller reads `req.vault_token` (Intermezzo convention) first, falling back to `req.sessionToken`. That same value is passed verbatim to your `IntermezzoWalletPort` methods — the SDK never inspects it.
 
-If your auth layer puts the token somewhere else, inject `X402ClientService` directly and call it from your own controller.
+If your auth layer puts the token somewhere else, pass `extractSessionToken` to `forRootAsync`:
+
+```ts
+X402Module.forRootAsync({
+  imports: [...],
+  inject: [...],
+  useFactory: (...) => ({ getUserAddress, signAsUser }),
+  extractSessionToken: (req) => req.user?.vaultToken,   // ← your custom path
+});
+```
+
+## Non-GET resources
+
+`X402ClientService.fetch` and `POST /v1/wallet/x402/fetch` both accept optional `method`, `headers`, and `body`:
+
+```bash
+curl -X POST http://localhost:3000/v1/wallet/x402/fetch \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{
+        "user_id": "alice",
+        "url": "https://api.example.com/protected",
+        "method": "POST",
+        "headers": { "X-Trace-Id": "abc" },
+        "body": { "prompt": "hello" }
+      }'
+```
+
+Plain objects in `body` are JSON-stringified automatically; pass a string to send any other content type.
 
 ---
 
