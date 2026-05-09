@@ -89,13 +89,41 @@ RouterExplorer  Mapped {/v1/wallet/x402/fetch, POST} route
 
 ---
 
-## Step 3 — Make sure the payer + recipient are opted into the asset
+## Step 3 — Verify the endpoint registered (Swagger)
+
+Open the Intermezzo Swagger UI at <http://localhost:3000/docs>. You should now see a new **`X402Client`** tag with one endpoint:
+
+```
+POST /v1/wallet/x402/fetch
+   Pay an x402 resource using the custodial user wallet
+```
+
+If it's not there, check the pawn container logs — the most common cause is a missing `exports: [WalletService]` on `WalletModule` (a `Nest can't resolve dependencies of the X402ClientService` error). The route only requires Steps 1 and 2 to appear; you don't need on-chain funds yet.
+
+---
+
+## Step 4 — Make sure the payer + recipient are opted into the asset
 
 x402 settlement on Algorand is an ASA transfer. Both ends of the transfer must be opted into the asset (e.g. TestNet USDC, ASA `10458941`). If they're not, the facilitator will reject with `must optin, asset 10458941 missing from <address>`.
 
 ---
 
-## Step 4 — Test the client flow
+## Step 5 — Configure `.env`
+
+Add to your `.env`:
+
+```bash
+X402_PAY_TO=<your manager address from `vault:development:init` output>
+X402_FACILITATOR_URL=https://facilitator.goplausible.xyz
+```
+
+`X402_PAY_TO` is the address that will receive payment for protected routes you register in Step 7. Skip this if you only intend to use the **client** side (paying external x402 resources from your custodial wallet) — you only need it if you're also serving x402 routes from this app.
+
+> **Important:** Docker Compose only re-reads `env_file` on container _recreate_, not _restart_. After editing `.env` run `docker compose up -d --force-recreate pawn`, not just `docker compose restart pawn`.
+
+---
+
+## Step 6 — Test the client flow
 
 With everything wired up:
 
@@ -130,11 +158,13 @@ A successful response:
 
 If `status` is 402 with no `paymentResponse`, settlement failed — check the pawn container logs for the decoded `PAYMENT-REQUIRED` error string.
 
+You can also exercise this from Swagger: open <http://localhost:3000/docs>, click **Authorize** with `Bearer <access_token>`, then **Try it out** on `POST /v1/wallet/x402/fetch`.
+
 ---
 
-## Step 5 — (Optional) Protect your own routes with x402
+## Step 7 — (Optional) Protect your own routes with x402
 
-If you want your Intermezzo deployment to also _serve_ paid resources, register the Express middleware in `main.ts` against routes that bypass the global `/v1` prefix.
+If you want your Intermezzo deployment to also _serve_ paid resources (so you can test the full loop locally without depending on a hosted resource server), register the Express middleware in `main.ts` against routes that bypass the global `/v1` prefix.
 
 ```ts
 // src/main.ts (after SwaggerModule.setup, before app.listen)
@@ -167,16 +197,9 @@ if (payTo) {
 }
 ```
 
-Add to `.env`:
+Uses the `X402_PAY_TO` and `X402_FACILITATOR_URL` you set in Step 5. Unpaid `GET /weather` now returns `402 Payment Required` with x402-shaped headers; paid requests get your handler's body plus a `Payment-Response` header. The middleware auto-registers both Algorand TestNet and MainNet schemes — pass a `schemes` option to override.
 
-```
-X402_PAY_TO=<your manager address from vault:development:init>
-X402_FACILITATOR_URL=https://facilitator.goplausible.xyz
-```
-
-> **Important:** Docker Compose only re-reads `env_file` on container _recreate_, not _restart_. After editing `.env` run `docker compose up -d --force-recreate pawn`, not just `docker compose restart pawn`.
-
-Unpaid `GET /weather` returns `402 Payment Required` with x402-shaped headers; paid requests get your handler's body plus a `Payment-Response` header. The middleware auto-registers both Algorand TestNet and MainNet schemes — pass a `schemes` option to override.
+To test against this local route instead of the hosted one in Step 6, change the `url` in the curl to `http://localhost:3000/weather`.
 
 ---
 
